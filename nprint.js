@@ -697,15 +697,17 @@
         var that = this;
         that._clear();
         that._buildIframe(D.body,function(){
-          that._layer = obj.iframe;
           var obj = this;
+          that._layer = obj.iframe;
           DomUtil.setStyle(obj.iframe,'position:absolute;left:-999px;top:-999px;width:0,height:0;border:0;');
           that._build(obj);
-          try{
-            obj.document.execCommand("print",false,null);
-          }catch(e){
-            obj.window.print();
-          }
+          W.setTimeout(function(){
+            try{
+              obj.document.execCommand("print",false,null);
+            }catch(e){
+              obj.window.print();
+            }
+          },100);
         });
       },
       getPaper:function(){

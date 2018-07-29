@@ -1,0 +1,29 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Print Demo</title>
+  </head>
+  <body>
+    <script src="nprint.js"></script>
+    <script>
+      //create a print document
+      var doc = NPrint.createDocument();
+
+      //set paper type
+      doc.getPaper().setType('A4');
+
+      //add a print page
+      var page = doc.addPage();
+
+      //add 100mm*26mm region at page center to fill text 'Hello World!',text size 10mm,text align CENTER
+      page.addText().setWidth(100).setHeight(26).setAnchor(NPrint.ANCHOR.CENTER).setContent('Hello World!').setSize(10).setAlign(NPrint.ALIGN.CENTER);
+
+      //preview
+      doc.preview();
+
+      //print
+      //doc.print();
+    </script>
+  </body>
+</html>

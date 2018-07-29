@@ -1,5 +1,13 @@
-;(function(W,D){
-  var ANCHOR = {
+;(function(name,root,factory){
+  if (typeof define==='function'&&define.amd){
+    define(factory);
+  }else if(typeof module!='undefined'&&module.exports){
+    module.exports = factory();
+  }else{
+    root[name] = factory();
+  }
+})('NPrint',this,function(){
+  var W = window,D = document,ANCHOR = {
     TOP_LEFT:'top_left',
     TOP:'top',
     TOP_RIGHT:'top_right',
@@ -120,33 +128,33 @@
     var _getLocation = function(o){
       var x=0,y=0;
       switch(o.length){
-      case 1:
-        var r=_getLocation([]);
-        var m=o[0];
-        if(m.getBoundingClientRect){
-          x=m.getBoundingClientRect().left + r.x - D.documentElement.clientLeft;
-          y=m.getBoundingClientRect().top + r.y - D.documentElement.clientTop;
-        }else{
-          for(;m;x+=m.offsetLeft,y+=m.offsetTop,m=m.offsetParent);
-        }
-        break;
-      default:
-        x=Math.max(D.documentElement.scrollLeft,D.body.scrollLeft);
-        y=Math.max(D.documentElement.scrollTop,D.body.scrollTop);
+        case 1:
+          var r=_getLocation([]);
+          var m=o[0];
+          if(m.getBoundingClientRect){
+            x=m.getBoundingClientRect().left + r.x - D.documentElement.clientLeft;
+            y=m.getBoundingClientRect().top + r.y - D.documentElement.clientTop;
+          }else{
+            for(;m;x+=m.offsetLeft,y+=m.offsetTop,m=m.offsetParent);
+          }
+          break;
+        default:
+          x=Math.max(D.documentElement.scrollLeft,D.body.scrollLeft);
+          y=Math.max(D.documentElement.scrollTop,D.body.scrollTop);
       }
       return {x:x,y:y};
     };
     var _getSize = function(o){
       var w=0,h=0;
       switch(o.length){
-      case 1:
-        var m=o[0];
-        w=m.offsetWidth;
-        h=m.offsetHeight;
-        break;
-      default:
-        w=D.documentElement.clientWidth;
-        h=D.documentElement.clientHeight;
+        case 1:
+          var m=o[0];
+          w=m.offsetWidth;
+          h=m.offsetHeight;
+          break;
+        default:
+          w=D.documentElement.clientWidth;
+          h=D.documentElement.clientHeight;
       }
       return {width:w,height:h};
     };
@@ -666,7 +674,7 @@
         DomUtil.setStyle(mask,'-webkit-user-select:none;position:fixed;left:0;top:0;_position:absolute;_bottom:auto;_top:expression(eval(document.documentElement.scrollTop));width:100%;height:100%;background-color:rgba(0,0,0,.2);background-color:#EEE\\9;z-index:9998;');
         D.body.appendChild(mask);
         that._mask = mask;
-        
+
         var div = D.createElement('div');
         DomUtil.setStyle(div,'position:absolute;left:50%;top:10px;width:'+(width+20)+'px;height:'+(height+20)+'px;margin-left:-'+(width/2+10)+'px;overflow:hidden;z-index:9999');
         D.body.appendChild(div);
@@ -688,7 +696,7 @@
             }
           });
         });
-        
+
         DomUtil.addEvent(mask,'click',function(){
           that._clear();
         });
@@ -718,15 +726,13 @@
       }
     };
   };
-  if(!W['NPrint']){
-    DomUtil.style('a.nprint-btn-print{position:absolute;left:20px;top:20px;width:50px;height:40px;font-size:0;text-decoration:none;border:0;background-color:#5BC0DE;border:1px solid #46B8DA;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-o-user-select:none;-khtml-user-select:none;user-select:none;-webkit-transition:all .2s linear 0s;-moz-transition:all .2s linear 0s;-ms-transition:all .2s linear 0s;-o-transition:all .2s linear 0s;transition:all .2s linear 0s;cursor:pointer;background-repeat:no-repeat;background-position:center center;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB5klEQVRYR+2W61HDMBCEdyuADggVABUAHUAFQAdQAaQC6IBQAVABSQekA6cCoIJjNnM2knFiybEnwwz6A+Po8elub0/Elge3fD6SAMzMuoCSbN2/dYIOdoAvAO+JIIcAdvoGmJE8SQEwsymA43+AvxkBM7tT/gAk5TtFEwA+XcATkk/hmqgKzEwqP/AJs8TNU6btBvsK4qpcVAH4zW8BiPCapKh7G2YmiBeP7jlJ/f9jRH77EUlNHGQ4xAeAV5JndQC5XXKth4RmNgJwEeWWHAffta+8QaZW6A/J/T4BJNi3GgDNrPw+JilxCyAyqVADm0RAaZP9VkM39pDre0FSNx8GIEcwyREws2VDydl8zdxFdgRK0p4A8jVgZpcApG55wwLAJBMmXDcNqiBPhP4WyC7PVeu8DEFSl4uMSCrdA3BEsnp4hBt5VKJ6b4jKjdY3AQRGVF0oLEM507M3DlllaRxVeQZ2vS4bp16CUVn74fcAlFpBPkQR8BrVj48Nu3dNQRPoXJ227DW/3oRun3KtZY68eXQFqL8j1YDUDatG1/oorWlAUNLJujHXAanizQVQZFRe2RpYtSAXQM2l7aWkEBeDRCDHiPoGKN90OQyKVKt4U1OQc3A4d3OArienrmuNQOpGXed9A6bJXjBdbLGMAAAAAElFTkSuQmCC);}a.nprint-btn-print:hover{background-color:#31B0D5;border-color:#269ABC;text-decoration:none;-webkit-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-moz-box-shadow:0px1px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-ms-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-o-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);}');
-    W['NPrint'] = {
-      PAPER:PAPER,
-      ANCHOR:ANCHOR,
-      ALIGN:ALIGN,
-      createDocument:function(){
-        return _createDocument();
-      }
-    };
-  }
-})(window,document);
+  DomUtil.style('a.nprint-btn-print{position:absolute;left:20px;top:20px;width:50px;height:40px;font-size:0;text-decoration:none;border:0;background-color:#5BC0DE;border:1px solid #46B8DA;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-o-user-select:none;-khtml-user-select:none;user-select:none;-webkit-transition:all .2s linear 0s;-moz-transition:all .2s linear 0s;-ms-transition:all .2s linear 0s;-o-transition:all .2s linear 0s;transition:all .2s linear 0s;cursor:pointer;background-repeat:no-repeat;background-position:center center;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB5klEQVRYR+2W61HDMBCEdyuADggVABUAHUAFQAdQAaQC6IBQAVABSQekA6cCoIJjNnM2knFiybEnwwz6A+Po8elub0/Elge3fD6SAMzMuoCSbN2/dYIOdoAvAO+JIIcAdvoGmJE8SQEwsymA43+AvxkBM7tT/gAk5TtFEwA+XcATkk/hmqgKzEwqP/AJs8TNU6btBvsK4qpcVAH4zW8BiPCapKh7G2YmiBeP7jlJ/f9jRH77EUlNHGQ4xAeAV5JndQC5XXKth4RmNgJwEeWWHAffta+8QaZW6A/J/T4BJNi3GgDNrPw+JilxCyAyqVADm0RAaZP9VkM39pDre0FSNx8GIEcwyREws2VDydl8zdxFdgRK0p4A8jVgZpcApG55wwLAJBMmXDcNqiBPhP4WyC7PVeu8DEFSl4uMSCrdA3BEsnp4hBt5VKJ6b4jKjdY3AQRGVF0oLEM507M3DlllaRxVeQZ2vS4bp16CUVn74fcAlFpBPkQR8BrVj48Nu3dNQRPoXJ227DW/3oRun3KtZY68eXQFqL8j1YDUDatG1/oorWlAUNLJujHXAanizQVQZFRe2RpYtSAXQM2l7aWkEBeDRCDHiPoGKN90OQyKVKt4U1OQc3A4d3OArienrmuNQOpGXed9A6bJXjBdbLGMAAAAAElFTkSuQmCC);}a.nprint-btn-print:hover{background-color:#31B0D5;border-color:#269ABC;text-decoration:none;-webkit-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-moz-box-shadow:0px1px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-ms-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-o-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);}');
+  return {
+    PAPER:PAPER,
+    ANCHOR:ANCHOR,
+    ALIGN:ALIGN,
+    createDocument:function(){
+      return _createDocument();
+    }
+  };
+});

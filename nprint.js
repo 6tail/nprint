@@ -32,9 +32,15 @@
     'B3':{width:353,height:500},
     'B4':{width:250,height:353},
     'B5':{width:176,height:250}
+  },SCALE = {
+    NONE:'none',
+    FILL:'fill',
+    EDGE:'edge',
+    INSIDE:'inside',
+    CROP:'crop'
   };
   var ALIGN = ANCHOR;
-  var _mask=null,_layer=null,_timer;
+  var _mask,_layer,_button,_timer;
   var _clear = function(){
     if(_timer){
       W.clearInterval(_timer);
@@ -48,6 +54,10 @@
       _layer.parentNode.removeChild(_layer);
     }
     _layer = null;
+    if(_button){
+      _button.parentNode.removeChild(_button);
+    }
+    _button = null;
   };
   var DomUtil = (function(){
     var C = [function(el,css){el.style.cssText = css;},function(el,css){el.setAttribute('style',css);}];
@@ -129,7 +139,12 @@
     };
     var _addClass = function(el,className){
       if (!_hasClass(el,className)){
-        _setClass(el,_getClass(el)+" "+className);
+        var oldClass = _getClass(el);
+        if(oldClass){
+          _setClass(el,oldClass+' '+className);
+        }else{
+          _setClass(el,className);
+        }
       }
     };
     var _removeClass = function(el,className){
@@ -222,11 +237,17 @@
     return {
       mm2px:function(dpi,mm){
         return Math.ceil(dpi/25.4*mm);
+      },
+      uuid:function(){
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
+          var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);
+          return v.toString(16);
+        });
       }
     };
   })();
-  var _createText = function(){
-    var text = _createPanel();
+  var _createText = function(doc){
+    var text = _createPanel(doc);
     text._content = '';
     text._color = '#000';
     text._size = '12px';
@@ -253,9 +274,11 @@
     };
     return text;
   };
-  var _createImage = function(){
-    var img = _createPanel();
+  var _createImage = function(doc){
+    var img = _createPanel(doc);
     img._src = '';
+    img._scale = SCALE.EDGE;
+    img._align = ALIGN.LEFT_TOP;
     img.setSource = function(src){
       this._src = src;
       return this;
@@ -263,10 +286,21 @@
     img.getSource = function(){
       return this._src;
     };
+    img.getAlign = function(){return this._align;};
+    img.setAlign = function(align){
+      this._align = align;
+      return this;
+    };
+    img.getScale = function(){return this._scale;};
+    img.setScale = function(scale){
+      this._scale = scale;
+      return this;
+    };
     return img;
   };
-  var _createPanel = function(){
+  var _createPanel = function(doc){
     return {
+      _id:MathUtil.uuid(),
       _width:0,
       _height:0,
       _padding:{
@@ -295,6 +329,13 @@
       _bgcolor:'#FFF',
       _layer:null,
       _children:[],
+      _document:doc,
+      getId:function(){
+        return this._id;
+      },
+      getDocument:function(){
+        return this._document;
+      },
       getWidth:function(){return this._width;},
       setWidth:function(w){
         this._width=w;
@@ -331,22 +372,24 @@
         return this._layer;
       },
       addPanel:function(){
-        var panel = _createPanel();
+        var panel = _createPanel(this.getDocument());
         this._children.push({type:'panel',instance:panel});
         return panel;
       },
       addGrid:function(){
-        var grid = _createGrid();
+        var grid = _createGrid(this.getDocument());
         this._children.push({type:'grid',instance:grid});
         return grid;
       },
       addText:function(){
-        var text = _createText();
+        var text = _createText(this.getDocument());
         this._children.push({type:'text',instance:text});
         return text;
       },
       addImage:function(){
-        var img = _createImage();
+        var doc = this.getDocument();
+        var img = _createImage(doc);
+        doc._images[img.getId()] = img;
         this._children.push({type:'image',instance:img});
         return img;
       },
@@ -355,8 +398,8 @@
       }
     };
   };
-  var _createGrid = function(){
-    var grid = _createPanel();
+  var _createGrid = function(doc){
+    var grid = _createPanel(doc);
     grid._cols = 1;
     grid._rows = 1;
     grid._cells = {};
@@ -373,7 +416,7 @@
     grid.getCell = function(row,col){
       var cell = this._cells[row+'-'+col];
       if(!cell){
-        cell = _createPanel();
+        cell = _createPanel(this.getDocument());
         var width = this.getWidth()/this.getCols(),height = this.getHeight()/this.getRows();
         cell.setWidth(width).setHeight(height);
         this._cells[row+'-'+col] = {_row:row,_col:col,getRow:function(){return this._row;},getCol:function(){return this._col;},instance:cell};
@@ -390,11 +433,7 @@
     return grid;
   };
   var _addPage = function(doc){
-    var page = _createGrid();
-    page._document = doc;
-    page.getDocument = function(){
-      return this._document;
-    };
+    var page = _createGrid(doc);
     var paper = doc.getPaper();
     page.setCols(1);
     page.setRows(1);
@@ -436,6 +475,7 @@
         }
       },
       _pages:[],
+      _images:{},
       _build:function(iframe){
         var doc = iframe.document;
         doc.open();
@@ -594,9 +634,116 @@
         return div;
       },
       _buildImage:function(iframe,father,panel){
+        var dpi = this.getDPI();
         var div = this._buildPanel(iframe,father,panel);
         var instance = panel.instance;
-        div.innerHTML = '<img src="'+instance.getSource()+'" width="100%" height="100%">';
+        var pw = instance.getWidth(),ph = instance.getHeight();
+        var width = instance._cache.width,height = instance._cache.height;
+        var w = width,h = height,x = 0,y = 0;
+        if(w>0&&h>0){
+          var r0,r1;
+          switch(instance.getScale()){
+            case SCALE.NONE:
+              w = 0;
+              h = 0;
+              break;
+            case SCALE.FILL:
+              w = pw;
+              h = ph;
+              break;
+            case SCALE.EDGE:
+              r0 = width/pw;
+              r1 = height/ph;
+              if(r0<r1){
+                w = width/r1;
+                h = ph;
+              }else{
+                w = pw;
+                h = height/r0;
+              }
+              break;
+            case SCALE.INSIDE:
+              if(width<=pw&&height>ph){
+                h = ph;
+                w = width*ph/height;
+              }else if(width>pw&&height<=ph){
+                w = pw;
+                h = height*pw/width;
+              }else if(width>pw&&height>ph){
+                r0 = width/pw;
+                r1 = height/ph;
+                if(r0<r1){
+                  w = width/r1;
+                  h = ph;
+                }else{
+                  w = pw;
+                  h = height/r0;
+                }
+              }
+              break;
+            case SCALE.CROP:
+              r0 = width/pw;
+              r1 = height/ph;
+              if(r0<r1){
+                w = pw;
+                h = height/r0;
+              }else{
+                w = width/r1;
+                h = ph;
+              }
+              break;
+          }
+          switch(instance.getAlign()){
+            case ALIGN.TOP:
+              x = (pw-w)/2;
+              break;
+            case ALIGN.RIGHT_TOP:
+            case ALIGN.TOP_RIGHT:
+              x = pw-w;
+              break;
+            case ALIGN.RIGHT:
+              x = pw-w;
+              y = (ph-h)/2;
+              break;
+            case ALIGN.RIGHT_BOTTOM:
+            case ALIGN.BOTTOM_RIGHT:
+              x = pw-w;
+              y = ph-h;
+              break;
+            case ALIGN.BOTTOM:
+              x = (pw-w)/2;
+              y = ph-h;
+              break;
+            case ALIGN.LEFT_BOTTOM:
+            case ALIGN.BOTTOM_LEFT:
+              x = 0;
+              y = ph-h;
+              break;
+            case ALIGN.LEFT:
+              x = 0;
+              y = (ph-h)/2;
+              break;
+            case ALIGN.CENTER:
+              x = (pw-w)/2;
+              y = (ph-h)/2;
+              break;
+          }
+          if(w>0){
+            w = MathUtil.mm2px(dpi.x,w);
+          }
+          if(h>0){
+            h = MathUtil.mm2px(dpi.y,h);
+          }
+          if(x>0){
+            x = MathUtil.mm2px(dpi.x,x);
+          }
+          if(y>0){
+            y = MathUtil.mm2px(dpi.y,y);
+          }
+        }
+        div.innerHTML = '<img src="'+instance.getSource()+'">';
+        var dom = div.getElementsByTagName('img')[0];
+        DomUtil.addStyle(dom,'position:absolute;left:'+x+'px;top:'+y+'px'+(w>0?(';width:'+w+'px'):'')+(h>0?(';height:'+h+'px'):''));
         return div;
       },
       _buildPanel:function(iframe,father,panel){
@@ -609,7 +756,7 @@
         var w = MathUtil.mm2px(dpi.x,pw);
         var h = MathUtil.mm2px(dpi.y,ph);
         var div = iframe.document.createElement('div');
-        DomUtil.setStyle(div,'position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;background-color:'+instance.getBgColor());
+        DomUtil.setStyle(div,'position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;overflow:hidden;background-color:'+instance.getBgColor());
         father.getLayer().appendChild(div);
         instance.setLayer(div);
         return div;
@@ -648,28 +795,8 @@
         }
         return div;
       },
-      _listImages:function(panel){
-        var images = [];
-        if(!panel) return images;
-        var cells = [];
-        try{cells=panel.getCells();}catch(e){}
-        var l = panel.getChildren().concat(cells);
-        if(!l) return images;
-        var size = l.length;
-        if(size<1) return images;
-        for(var i=0;i<size;i++){
-          var o = l[i];
-          if('image'==o.type){
-            var src = o.instance.getSource();
-            if(src){
-              images.push(src);
-            }
-          }
-          images = images.concat(this._listImages(o.instance));
-        }
-        return images;
-      },
       _prepare:function(parentNode,callback){
+        var that = this;
         var iframe = D.createElement('iframe');
         iframe.wmode='Opaque';
         iframe.frameBorder='0';
@@ -677,27 +804,39 @@
         DomUtil.setStyle(iframe,'position:absolute;left:-999px;top:-999px;width:0,height:0;border:0;');
         parentNode.appendChild(iframe);
 
-        var images = [];
-        for(var i=0,j=this._pages.length;i<j;i++){
-          images = images.concat(this._listImages(this._pages[i]));
+        var imageNotLoad = 0;
+        for(var id in that._images){
+          imageNotLoad++;
         }
-
-        var imageNotLoad = images.length;
-        for(var i=0,j=imageNotLoad;i<j;i++){
-          var img = new Image();
-          img.src = images[i];
-          if(img.complete){
+        for(var id in that._images){
+          var img = that._images[id];
+          img._cache = {
+            width:0,
+            height:0
+          };
+          var o = new Image();
+          o.id = id;
+          o.src = img.getSource();
+          if(o.complete){
             imageNotLoad--;
+            that._images[o.id]._cache = {
+              width:o.width,
+              height:o.height
+            };
           }else{
-            img.onload = function(){
+            o.onload = function(){
+              var _this = this;
+              that._images[_this.id]._cache = {
+                width:_this.width,
+                height:_this.height
+              };
               imageNotLoad--;
             };
-            img.onerror = function(){
+            o.onerror = function(){
               imageNotLoad--;
             };
           }
         }
-
         _timer = W.setInterval(function(){
           var win = iframe.contentWindow;
           var doc=win.document||iframe.contentDocument;
@@ -726,20 +865,21 @@
         D.body.appendChild(mask);
         _mask = mask;
 
-        var div = D.createElement('div');
-        DomUtil.setStyle(div,'position:absolute;left:50%;top:10px;width:'+(width+20)+'px;height:'+(height+20)+'px;margin-left:-'+(width/2+10)+'px;overflow:hidden;z-index:9999');
-        D.body.appendChild(div);
-        _layer = div;
+        var layer = D.createElement('div');
+        DomUtil.setStyle(layer,'position:absolute;left:50%;top:10px;width:'+(width+20)+'px;height:'+(height+20)+'px;margin-left:-'+(width/2+10)+'px;overflow:hidden;z-index:9999');
+        D.body.appendChild(layer);
+        _layer = layer;
 
-        that._prepare(div,function(){
+        that._prepare(layer,function(){
           var obj = this;
           DomUtil.setStyle(obj.iframe,'position:absolute;left:10px;top:10px;width:'+width+'px;height:'+height+'px;border:0;-webkit-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-moz-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-ms-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-o-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);');
           that._build(obj);
-          var a = D.createElement('a');
-          DomUtil.addClass(a,'nprint-btn-print');
-          DomUtil.addStyle(a,'left:50%;margin-left:'+(width/2+20)+'px');
-          mask.appendChild(a);
-          DomUtil.addEvent(a,'click',function(){
+          var button = D.createElement('a');
+          DomUtil.setClass(button,'nprint-btn-print');
+          DomUtil.addStyle(button,'left:50%;margin-left:'+(width/2+20)+'px');
+          D.body.appendChild(button);
+          _button = button;
+          DomUtil.addEvent(button,'click',function(){
             try{
               obj.document.execCommand("print",false,null);
             }catch(e){
@@ -748,7 +888,7 @@
           });
         });
 
-        DomUtil.addEvent(mask,'click',function(){
+        DomUtil.addEvent(_mask,'click',function(){
           _clear();
         });
       },
@@ -776,11 +916,12 @@
       }
     };
   };
-  DomUtil.style('a.nprint-btn-print{position:absolute;left:20px;top:20px;width:50px;height:40px;font-size:0;text-decoration:none;border:0;background-color:#5BC0DE;border:1px solid #46B8DA;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-o-user-select:none;-khtml-user-select:none;user-select:none;-webkit-transition:all .2s linear 0s;-moz-transition:all .2s linear 0s;-ms-transition:all .2s linear 0s;-o-transition:all .2s linear 0s;transition:all .2s linear 0s;cursor:pointer;background-repeat:no-repeat;background-position:center center;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB5klEQVRYR+2W61HDMBCEdyuADggVABUAHUAFQAdQAaQC6IBQAVABSQekA6cCoIJjNnM2knFiybEnwwz6A+Po8elub0/Elge3fD6SAMzMuoCSbN2/dYIOdoAvAO+JIIcAdvoGmJE8SQEwsymA43+AvxkBM7tT/gAk5TtFEwA+XcATkk/hmqgKzEwqP/AJs8TNU6btBvsK4qpcVAH4zW8BiPCapKh7G2YmiBeP7jlJ/f9jRH77EUlNHGQ4xAeAV5JndQC5XXKth4RmNgJwEeWWHAffta+8QaZW6A/J/T4BJNi3GgDNrPw+JilxCyAyqVADm0RAaZP9VkM39pDre0FSNx8GIEcwyREws2VDydl8zdxFdgRK0p4A8jVgZpcApG55wwLAJBMmXDcNqiBPhP4WyC7PVeu8DEFSl4uMSCrdA3BEsnp4hBt5VKJ6b4jKjdY3AQRGVF0oLEM507M3DlllaRxVeQZ2vS4bp16CUVn74fcAlFpBPkQR8BrVj48Nu3dNQRPoXJ227DW/3oRun3KtZY68eXQFqL8j1YDUDatG1/oorWlAUNLJujHXAanizQVQZFRe2RpYtSAXQM2l7aWkEBeDRCDHiPoGKN90OQyKVKt4U1OQc3A4d3OArienrmuNQOpGXed9A6bJXjBdbLGMAAAAAElFTkSuQmCC);}a.nprint-btn-print:hover{background-color:#31B0D5;border-color:#269ABC;text-decoration:none;-webkit-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-moz-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-ms-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-o-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);}');
+  DomUtil.style('a.nprint-btn-print{position:absolute;left:20px;top:20px;width:50px;height:40px;font-size:0;text-decoration:none;border:0;background-color:#5BC0DE;border:1px solid #46B8DA;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-o-user-select:none;-khtml-user-select:none;user-select:none;-webkit-transition:all .2s linear 0s;-moz-transition:all .2s linear 0s;-ms-transition:all .2s linear 0s;-o-transition:all .2s linear 0s;transition:all .2s linear 0s;cursor:pointer;background-repeat:no-repeat;background-position:center center;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB5klEQVRYR+2W61HDMBCEdyuADggVABUAHUAFQAdQAaQC6IBQAVABSQekA6cCoIJjNnM2knFiybEnwwz6A+Po8elub0/Elge3fD6SAMzMuoCSbN2/dYIOdoAvAO+JIIcAdvoGmJE8SQEwsymA43+AvxkBM7tT/gAk5TtFEwA+XcATkk/hmqgKzEwqP/AJs8TNU6btBvsK4qpcVAH4zW8BiPCapKh7G2YmiBeP7jlJ/f9jRH77EUlNHGQ4xAeAV5JndQC5XXKth4RmNgJwEeWWHAffta+8QaZW6A/J/T4BJNi3GgDNrPw+JilxCyAyqVADm0RAaZP9VkM39pDre0FSNx8GIEcwyREws2VDydl8zdxFdgRK0p4A8jVgZpcApG55wwLAJBMmXDcNqiBPhP4WyC7PVeu8DEFSl4uMSCrdA3BEsnp4hBt5VKJ6b4jKjdY3AQRGVF0oLEM507M3DlllaRxVeQZ2vS4bp16CUVn74fcAlFpBPkQR8BrVj48Nu3dNQRPoXJ227DW/3oRun3KtZY68eXQFqL8j1YDUDatG1/oorWlAUNLJujHXAanizQVQZFRe2RpYtSAXQM2l7aWkEBeDRCDHiPoGKN90OQyKVKt4U1OQc3A4d3OArienrmuNQOpGXed9A6bJXjBdbLGMAAAAAElFTkSuQmCC);z-index:10000}a.nprint-btn-print:hover{background-color:#31B0D5;border-color:#269ABC;text-decoration:none;-webkit-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-moz-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-ms-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-o-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);}');
   return {
     PAPER:PAPER,
     ANCHOR:ANCHOR,
     ALIGN:ALIGN,
+    SCALE:SCALE,
     createDocument:function(){
       return _createDocument();
     }

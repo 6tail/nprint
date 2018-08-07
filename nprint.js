@@ -326,7 +326,7 @@
         getY:function(){return this._y;}
       },
       _anchor:ANCHOR.CENTER,
-      _bgcolor:'#FFF',
+      _bgcolor:'transparent',
       _layer:null,
       _children:[],
       _document:doc,
@@ -435,10 +435,7 @@
   var _addPage = function(doc){
     var page = _createGrid(doc);
     var paper = doc.getPaper();
-    page.setCols(1);
-    page.setRows(1);
-    page.setWidth(paper.getWidth()).setHeight(paper.getHeight());
-    page.setAnchor(ANCHOR.NONE);
+    page.setCols(1).setRows(1).setWidth(paper.getWidth()).setHeight(paper.getHeight()).setBgColor('#FFF').setAnchor(ANCHOR.NONE);
     delete page['setCols'];
     delete page['setRows'];
     delete page['setWidth'];

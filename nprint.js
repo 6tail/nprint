@@ -169,7 +169,11 @@
             x=m.getBoundingClientRect().left + r.x - D.documentElement.clientLeft;
             y=m.getBoundingClientRect().top + r.y - D.documentElement.clientTop;
           }else{
-            for(;m;x+=m.offsetLeft,y+=m.offsetTop,m=m.offsetParent);
+            while(m){
+              x+=m.offsetLeft;
+              y+=m.offsetTop;
+              m=m.offsetParent;
+            }
           }
           break;
         default:
@@ -196,7 +200,7 @@
       var c=[];
       for(var i=0,j=el.childNodes.length;i<j;i++){
         var m=el.childNodes[i];
-        if(1==m.nodeType) c.push(m);
+        if(1===m.nodeType) c.push(m);
       }
       return c;
     };
@@ -209,8 +213,8 @@
         var o = D.createElement('div');
         DomUtil.setStyle(o,'width:1in;height:1in;font-size:0;position:absolute;left:0;top:0;visibility:hidden');
         D.body.appendChild(o);
-        ret.x = parseInt(o.offsetWidth,10);
-        ret.y = parseInt(o.offsetHeight,10);
+        ret.x = parseInt(o.offsetWidth+'',10);
+        ret.y = parseInt(o.offsetHeight+'',10);
         o.parentNode.removeChild(o);
       }
       return ret;
@@ -487,7 +491,7 @@
         var dpi = this.getDPI();
         var div = iframe.document.createElement('div');
         var w = MathUtil.mm2px(dpi.x,page.getWidth());
-        var h = MathUtil.mm2px(dpi.y,page.getHeight())-1;
+        var h = MathUtil.mm2px(dpi.y,page.getHeight()-1);
         DomUtil.setStyle(div,'position:relative;width:'+w+'px;height:'+h+'px;background-color:'+page.getBgColor()+';overflow:hidden;page-break-after:always');
         iframe.body.appendChild(div);
         page.setLayer(div);
@@ -581,7 +585,6 @@
         return {left:left,top:top};
       },
       _buildText:function(iframe,father,panel){
-        var dpi = this.getDPI();
         var div = this._buildPanel(iframe,father,panel);
         var instance = panel.instance;
         var child = iframe.document.createElement('div');
@@ -769,7 +772,8 @@
         var w = MathUtil.mm2px(dpi.x,width);
         var h = MathUtil.mm2px(dpi.y,height);
         var s = '<table><tbody>';
-        for(var i=0;i<rows;i++){
+        var i;
+        for(i=0;i<rows;i++){
           s += '<tr>';
           for(var j=0;j<cols;j++){
             s+='<td style="width:'+w+'px;height:'+h+'px;position:relative;"></td>';
@@ -782,7 +786,7 @@
         var cellSize = cells.length;
         if(cellSize>0){
           var trs = DomUtil.getChildren(div.getElementsByTagName('tbody')[0]);
-          for(var i=0;i<cellSize;i++){
+          for(i=0;i<cellSize;i++){
             var cell = cells[i];
             var gf = cell.instance;
             var tds = DomUtil.getChildren(trs[cell.getRow()]);
@@ -801,11 +805,11 @@
         DomUtil.setStyle(iframe,'position:absolute;left:-999px;top:-999px;width:0,height:0;border:0;');
         parentNode.appendChild(iframe);
 
-        var imageNotLoad = 0;
-        for(var id in that._images){
+        var imageNotLoad = 0,id;
+        for(id in that._images){
           imageNotLoad++;
         }
-        for(var id in that._images){
+        for(id in that._images){
           var img = that._images[id];
           img._cache = {
             width:0,

@@ -128,7 +128,7 @@
     };
     var _addStyle = function(el,css){
       var s = el.style.cssText;
-      if(';'!=s.substr(s.length-1)) s+=';';
+      if(';'!==s.substr(s.length-1)) s+=';';
       _setStyle(el,s+css);
     };
     var _style = function(css){
@@ -244,7 +244,7 @@
       },
       uuid:function(){
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
-          var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);
+          var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);
           return v.toString(16);
         });
       }
@@ -807,9 +807,11 @@
 
         var imageNotLoad = 0,id;
         for(id in that._images){
+          if(!that._images.hasOwnProperty(id)) continue;
           imageNotLoad++;
         }
         for(id in that._images){
+          if(!that._images.hasOwnProperty(id)) continue;
           var img = that._images[id];
           img._cache = {
             width:0,

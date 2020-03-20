@@ -40,7 +40,7 @@ NPrint is a pure javascript web print library without browser plugins.
 
 Output:
 
-![sample](https://github.com/6tail/nprint/blob/master/sample.png "sample")
+![sample](https://github.com/6tail/nprint/raw/master/sample.png "sample")
 
 ## Documentation
 

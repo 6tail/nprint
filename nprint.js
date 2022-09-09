@@ -128,7 +128,7 @@
     };
     var _addStyle = function(el,css){
       var s = el.style.cssText;
-      if(';'!==s.substr(s.length-1)) s+=';';
+      if(';'!=s.substr(s.length-1)) s+=';';
       _setStyle(el,s+css);
     };
     var _style = function(css){
@@ -244,7 +244,7 @@
       },
       uuid:function(){
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
-          var r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);
+          var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);
           return v.toString(16);
         });
       }
@@ -256,6 +256,7 @@
     text._color = '#000';
     text._size = '12px';
     text._align = ALIGN.LEFT_TOP;
+    text._family = null;
     text.getContent = function(){return this._content;};
     text.setContent = function(s){
       this._content = s;
@@ -274,6 +275,11 @@
     text.getAlign = function(){return this._align;};
     text.setAlign = function(align){
       this._align = align;
+      return this;
+    };
+    text.getFamily = function(){return this._family;};
+    text.setFamily = function(family){
+      this._family = family;
       return this;
     };
     return text;
@@ -630,7 +636,13 @@
         if(size===+size){
           size = size+'mm';
         }
-        DomUtil.addStyle(child,'color:'+instance.getColor()+';font-size:'+size+align);
+        var family = instance.getFamily();
+        if(family){
+          family = ';font-family:' + family;
+        }else{
+          family = '';
+        }
+        DomUtil.addStyle(child,'color:'+instance.getColor()+';font-size:'+size+align+family);
         return div;
       },
       _buildImage:function(iframe,father,panel){
@@ -807,11 +819,9 @@
 
         var imageNotLoad = 0,id;
         for(id in that._images){
-          if(!that._images.hasOwnProperty(id)) continue;
           imageNotLoad++;
         }
         for(id in that._images){
-          if(!that._images.hasOwnProperty(id)) continue;
           var img = that._images[id];
           img._cache = {
             width:0,
@@ -855,7 +865,7 @@
         this._pages.push(page);
         return page;
       },
-      preview:function(){
+      preview:function(container){
         _clear();
         var that = this;
         var dpi = that.getDPI();
@@ -863,36 +873,48 @@
         var w = paper.getWidth(),h = paper.getHeight();
         var width = MathUtil.mm2px(dpi.x,w);
         var height = MathUtil.mm2px(dpi.y,h);
-        var mask = D.createElement('div');
-        DomUtil.setStyle(mask,'-webkit-user-select:none;position:fixed;left:0;top:0;_position:absolute;_bottom:auto;_top:expression(eval(document.documentElement.scrollTop));width:100%;height:100%;background-color:rgba(0,0,0,.2);background-color:#EEE\\9;z-index:9998;');
-        D.body.appendChild(mask);
-        _mask = mask;
 
         var layer = D.createElement('div');
-        DomUtil.setStyle(layer,'position:absolute;left:50%;top:10px;width:'+(width+20)+'px;height:'+(height+20)+'px;margin-left:-'+(width/2+10)+'px;overflow:hidden;z-index:9999');
-        D.body.appendChild(layer);
+        if(!container){
+          var mask = D.createElement('div');
+          DomUtil.setStyle(mask,'-webkit-user-select:none;position:fixed;left:0;top:0;_position:absolute;_bottom:auto;_top:expression(eval(document.documentElement.scrollTop));width:100%;height:100%;background-color:rgba(0,0,0,.2);background-color:#EEE\\9;z-index:9998;');
+          D.body.appendChild(mask);
+          _mask = mask;
+
+          DomUtil.addEvent(_mask,'click',function(){
+            _clear();
+          });
+
+          DomUtil.setStyle(layer,'position:absolute;left:50%;top:10px;width:'+(width+20)+'px;height:'+(height+20)+'px;margin-left:-'+(width/2+10)+'px;overflow:hidden;z-index:9999');
+          D.body.appendChild(layer);
+        }else{
+          DomUtil.setStyle(layer,'position:relative;width:'+width+'px;height:'+height+'px;overflow:hidden;z-index:9999');
+          container.appendChild(layer);
+        }
         _layer = layer;
 
-        that._prepare(layer,function(){
+        that._prepare(_layer,function(){
           var obj = this;
-          DomUtil.setStyle(obj.iframe,'position:absolute;left:10px;top:10px;width:'+width+'px;height:'+height+'px;border:0;-webkit-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-moz-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-ms-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-o-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);');
+          if(!container){
+            DomUtil.setStyle(obj.iframe,'position:absolute;left:10px;top:10px;width:'+width+'px;height:'+height+'px;border:0;-webkit-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-moz-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-ms-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);-o-box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);box-shadow:0 5px 11px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15);');
+          }else{
+            DomUtil.setStyle(obj.iframe,'width:'+width+'px;height:'+height+'px;border:0;');
+          }
           that._build(obj);
-          var button = D.createElement('a');
-          DomUtil.setClass(button,'nprint-btn-print');
-          DomUtil.addStyle(button,'left:50%;margin-left:'+(width/2+20)+'px');
-          D.body.appendChild(button);
-          _button = button;
-          DomUtil.addEvent(button,'click',function(){
-            try{
-              obj.document.execCommand("print",false,null);
-            }catch(e){
-              obj.window.print();
-            }
-          });
-        });
-
-        DomUtil.addEvent(_mask,'click',function(){
-          _clear();
+          if(!container){
+            var button = D.createElement('a');
+            DomUtil.setClass(button,'nprint-btn-print');
+            DomUtil.addStyle(button,'left:50%;margin-left:'+(width/2+20)+'px');
+            D.body.appendChild(button);
+            _button = button;
+            DomUtil.addEvent(button,'click',function(){
+              try{
+                obj.document.execCommand("print",false,null);
+              }catch(e){
+                obj.window.print();
+              }
+            });
+          }
         });
       },
       print:function(){

@@ -40,13 +40,8 @@ NPrint is a pure javascript web print library without browser plugins.
 
 Output:
 
-![sample](https://github.com/6tail/nprint/raw/master/sample.png "sample")
+![sample](https://6tail.cn/nprint/sample.png "sample")
 
 ## Documentation
 
-Please visit [http://6tail.cn/nprint/api.html](http://6tail.cn/nprint/api.html "http://6tail.cn/nprint/api.html")
-
-## Contact
-
-<a target="_blank" href="https://jq.qq.com/?_wv=1027&k=5F9Pbf0"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="nprint" title="nprint"></a>
-
+Please visit [https://6tail.cn/nprint/api.html](https://6tail.cn/nprint/api.html "https://6tail.cn/nprint/api.html")

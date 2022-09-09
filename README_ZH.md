@@ -40,13 +40,8 @@ NPrint是一个纯javascript的WEB打印库，使用它不需要安装任何浏�
 
 输出结果：
 
-![示例](https://github.com/6tail/nprint/blob/master/sample.png "示例")
+![示例](https://6tail.cn/nprint/sample.png "示例")
 
 ## 文档
 
-请移步至 [http://6tail.cn/nprint/api.html](http://6tail.cn/nprint/api.html "http://6tail.cn/nprint/api.html")
-
-## 联系
-
-<a target="_blank" href="https://jq.qq.com/?_wv=1027&k=5F9Pbf0"><img border="0" src="http://pub.idqqimg.com/wpa/images/group.png" alt="nprint" title="nprint"></a>
-
+请移步至 [https://6tail.cn/nprint/api.html](https://6tail.cn/nprint/api.html "https://6tail.cn/nprint/api.html")
